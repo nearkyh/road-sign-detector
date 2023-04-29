@@ -4,10 +4,10 @@ import torch.nn.functional as F
 from torchvision.models import resnet34
 
 
-class Model(torch.nn.Module):
+class RoadSignModel(torch.nn.Module):
 
     def __init__(self):
-        super(Model, self).__init__()
+        super(RoadSignModel, self).__init__()
 
         resnet = resnet34(pretrained=True)
         layers = list(resnet.children())[:8]
