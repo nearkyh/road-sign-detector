@@ -1,15 +1,35 @@
 import os
 import pandas as pd
+import numpy as np
 import xml.etree.ElementTree as ET
 from glob import glob
-from torch.utils.data import Dataset
 from PIL import Image
+from torch.utils.data import Dataset
+from torchvision import transforms
 
 class_idx = {
     'speedlimit': 0,
     'stop': 1,
     'crosswalk': 2,
     'trafficlight': 3
+}
+
+data_transforms = {
+    'train': transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ]),
+    'valid': transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ]),
+    'test': transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ])
 }
 
 
@@ -34,7 +54,7 @@ def generate_df_dataset(anno_path):
 
 class RoadSignDataset(Dataset):
 
-    def __init__(self, df, img_path, transforms=False):
+    def __init__(self, df, img_path, transforms=None):
         self.df = df
         self.img_path = img_path
         self.transforms = transforms
@@ -47,9 +67,12 @@ class RoadSignDataset(Dataset):
         img_name = df_obj['filename']
         img_file = os.path.join(self.img_path, img_name)
         label = class_idx[df_obj['class']]
-        bbox = [df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']]
+        bbox = np.array([
+            df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']
+        ])
 
         img = Image.open(img_file).convert('RGB')
-        img /= 255
+        if self.transforms:
+            img = self.transforms(img)
 
         return img, label, bbox
