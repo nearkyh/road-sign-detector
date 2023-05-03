@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from glob import glob
 from PIL import Image
 from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 class_idx = {
@@ -76,3 +77,9 @@ class RoadSignDataset(Dataset):
             img = self.transforms(img)
 
         return img, label, bbox
+
+
+class RoadSignDataLoader(DataLoader):
+
+    def __init__(self, dataset, batch_size, shuffle=False):
+        super().__init__(dataset, batch_size, shuffle)
