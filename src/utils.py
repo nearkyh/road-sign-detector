@@ -34,3 +34,18 @@ def mask_to_bbox(mask):
 
     return bbox
 
+
+def draw_bbox(img, bbox, color=(0, 255, 0), thickness=2):
+    """Bounding Box 그리기"""
+    xmin, ymin, xmax, ymax = bbox
+    cv2.rectangle(img, (xmin, ymin), (xmax, ymax), color, thickness)
+
+
+if __name__ == '__main__':
+    img = np.zeros((300, 300, 3), np.uint8)
+    bbox = [35, 35, 75, 75]
+    draw_bbox(img, bbox)
+
+    cv2.imshow('img', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
