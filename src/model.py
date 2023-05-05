@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet34
+from torchvision.models import ResNet34_Weights
 
 
 class RoadSignModel(torch.nn.Module):
@@ -10,6 +11,7 @@ class RoadSignModel(torch.nn.Module):
         super(RoadSignModel, self).__init__()
 
         resnet = resnet34(pretrained=True)
+        # resnet = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
         layers = list(resnet.children())[:8]
         self.features1 = nn.Sequential(*layers[:6])
         self.features2 = nn.Sequential(*layers[6:])
