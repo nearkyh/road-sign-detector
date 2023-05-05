@@ -67,7 +67,7 @@ class RoadSignDataset(Dataset):
         df_obj = self.df.iloc[idx]
         img_name = df_obj['filename']
         img_file = os.path.join(self.img_path, img_name)
-        label = class_idx[df_obj['class']]
+        cls = class_idx[df_obj['class']]
         bbox = np.array([
             df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']
         ])
@@ -76,7 +76,7 @@ class RoadSignDataset(Dataset):
         if self.transforms:
             img = self.transforms(img)
 
-        return img, label, bbox
+        return img, cls, bbox
 
 
 class RoadSignDataLoader(DataLoader):
