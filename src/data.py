@@ -1,18 +1,26 @@
 import os
+from glob import glob
+import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
-import xml.etree.ElementTree as ET
-from glob import glob
-from PIL import Image
+import cv2
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 
 class_idx = {
     'speedlimit': 0,
     'stop': 1,
     'crosswalk': 2,
-    'trafficlight': 3
+    'trafficlight': 3,
+}
+class_label = {
+    0: 'speedlimit',
+    1: 'stop',
+    2: 'crosswalk',
+    3: 'trafficlight',
 }
 
 transform_config = {
@@ -34,6 +42,19 @@ transform_config = {
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ]),
+    'test2': A.Compose(
+        [
+            A.RandomCrop(width=224, height=224),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+            ToTensorV2(),
+        ],
+        bbox_params=A.BboxParams(
+            format='pascal_voc',
+            min_visibility=0.5,
+            label_fields=['cls_label'],
+        )
+    ),
 }
 
 
@@ -61,24 +82,42 @@ class RoadSignDataset(Dataset):
     def __init__(self, df, img_path, mode='default'):
         self.df = df
         self.img_path = img_path
-        self.mode = mode
+        self.mode = mode.lower()
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         df_obj = self.df.iloc[idx]
+
+        # Image
         img_name = df_obj['filename']
         img_file = os.path.join(self.img_path, img_name)
-        cls = class_idx[df_obj['class']]
-        bbox = np.array([
-            df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']
-        ])
+        img = cv2.imread(img_file)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        img = Image.open(img_file).convert('RGB')
-        img = transform_config[self.mode](img)
+        # Object class
+        cls_idx = class_idx[df_obj['class']]
 
-        return img, cls, bbox
+        # Object bounding box
+        bbox = [df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']]
+
+        # Data augmentation
+        if self.mode == 'test2':
+            transformed = transform_config[self.mode](
+                image=img,
+                bboxes=[bbox],
+                cls_label=[cls_idx]
+            )
+            img = transformed['image']
+            bbox = transformed['bboxes'][0]
+            cls_idx = transformed['cls_label'][0]
+        else:
+            img = transform_config[self.mode](img)
+
+        bbox = np.array(bbox).astype(np.int32)
+
+        return img, cls_idx, bbox
 
 
 class RoadSignDataLoader(DataLoader):
@@ -88,22 +127,23 @@ class RoadSignDataLoader(DataLoader):
 
 
 if __name__ == '__main__':
-    import cv2
-
     dataset_root = os.path.join(os.path.expanduser('~'), 'road-sign-dataset')
     img_path = os.path.join(dataset_root, 'images')
     anno_path = os.path.join(dataset_root, 'annotations')
 
     df_dataset = generate_df_dataset(anno_path)
-    roadSignDS = RoadSignDataset(df_dataset, img_path)
+    roadSignDS = RoadSignDataset(df_dataset, img_path, mode='test2')
     roadSignDL = RoadSignDataLoader(roadSignDS, batch_size=1)
 
     for _, batch_data in enumerate(roadSignDL):
         batch_img, batch_cls, batch_bbox = batch_data
-        print(batch_img.shape, batch_cls.shape, batch_bbox.shape)
+        print(batch_img.shape, batch_cls, batch_bbox)
 
         img = batch_img[0].permute(1, 2, 0).numpy()
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        xmin, ymin, xmax, ymax = batch_bbox[0].numpy()
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
 
         cv2.imshow('img', img)
         cv2.waitKey(0)
