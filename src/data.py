@@ -15,7 +15,10 @@ class_idx = {
     'trafficlight': 3
 }
 
-data_transforms = {
+transform_config = {
+    'default': transforms.Compose([
+        transforms.ToTensor(),
+    ]),
     'train': transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -30,7 +33,7 @@ data_transforms = {
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    ]),
 }
 
 
@@ -55,14 +58,14 @@ def generate_df_dataset(anno_path):
 
 class RoadSignDataset(Dataset):
 
-    def __init__(self, df, img_path, transforms=None):
+    def __init__(self, df, img_path, mode='default'):
         self.df = df
         self.img_path = img_path
-        self.transforms = transforms
+        self.mode = mode
 
     def __len__(self):
         return len(self.df)
-    
+
     def __getitem__(self, idx):
         df_obj = self.df.iloc[idx]
         img_name = df_obj['filename']
@@ -73,8 +76,7 @@ class RoadSignDataset(Dataset):
         ])
 
         img = Image.open(img_file).convert('RGB')
-        if self.transforms:
-            img = self.transforms(img)
+        img = transform_config[self.mode](img)
 
         return img, cls, bbox
 
@@ -83,3 +85,27 @@ class RoadSignDataLoader(DataLoader):
 
     def __init__(self, dataset, batch_size, shuffle=False):
         super().__init__(dataset, batch_size, shuffle)
+
+
+if __name__ == '__main__':
+    import cv2
+
+    dataset_root = os.path.join(os.path.expanduser('~'), 'road-sign-dataset')
+    img_path = os.path.join(dataset_root, 'images')
+    anno_path = os.path.join(dataset_root, 'annotations')
+
+    df_dataset = generate_df_dataset(anno_path)
+    roadSignDS = RoadSignDataset(df_dataset, img_path)
+    roadSignDL = RoadSignDataLoader(roadSignDS, batch_size=1)
+
+    for _, batch_data in enumerate(roadSignDL):
+        batch_img, batch_cls, batch_bbox = batch_data
+        print(batch_img.shape, batch_cls.shape, batch_bbox.shape)
+
+        img = batch_img[0].permute(1, 2, 0).numpy()
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        cv2.imshow('img', img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        break

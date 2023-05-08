@@ -9,7 +9,6 @@ from config import BATCH_SIZE
 from data import generate_df_dataset
 from data import RoadSignDataset
 from data import RoadSignDataLoader
-from data import data_transforms
 from model import RoadSignModel
 
 
@@ -96,8 +95,8 @@ if __name__ == '__main__':
     df_train, df_valid = train_test_split(df_dataset, test_size=0.2, random_state=RANDOM_SEED)
     df_valid, df_test = train_test_split(df_valid, test_size=0.5, random_state=RANDOM_SEED)
 
-    trainDS = RoadSignDataset(df_train, img_path, transforms=data_transforms['train'])
-    validDS = RoadSignDataset(df_valid, img_path, transforms=data_transforms['valid'])
+    trainDS = RoadSignDataset(df_train, img_path, mode='train')
+    validDS = RoadSignDataset(df_valid, img_path, mode='valid')
     trainDL = RoadSignDataLoader(trainDS, batch_size=BATCH_SIZE, shuffle=True)
     validDL = RoadSignDataLoader(validDS, batch_size=BATCH_SIZE)
 
