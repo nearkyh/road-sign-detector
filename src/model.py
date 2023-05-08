@@ -15,7 +15,7 @@ class RoadSignModel(torch.nn.Module):
         self.features1 = nn.Sequential(*layers[:6])
         self.features2 = nn.Sequential(*layers[6:])
 
-        self.cls = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
+        self.clf = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
         self.reg = nn.Sequential(nn.BatchNorm1d(512), nn.Linear(512, 4))
 
     def forward(self, x):
@@ -25,4 +25,4 @@ class RoadSignModel(torch.nn.Module):
         x = nn.AdaptiveAvgPool2d((1, 1))(x)
         x = x.view(x.shape[0], -1)
 
-        return self.cls(x), self.reg(x)
+        return self.clf(x), self.reg(x)
