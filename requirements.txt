@@ -1,3 +1,4 @@
+albumentations
 numpy
 opencv-python
 pandas
