@@ -36,7 +36,7 @@ transform_config = {
     ),
     'train': A.Compose(
         [
-            A.RandomCrop(height=224, width=224),
+            A.Resize(height=224, width=224),
             A.HorizontalFlip(p=0.5),
             A.RandomBrightnessContrast(p=0.2),
             A.Normalize(),
@@ -44,7 +44,6 @@ transform_config = {
         ],
         bbox_params=A.BboxParams(
             format='pascal_voc',
-            min_visibility=0.2,
             label_fields=['cls_label'],
         )
     ),
