@@ -6,7 +6,6 @@ import numpy as np
 import cv2
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
-from torchvision import transforms
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
@@ -24,34 +23,28 @@ class_label = {
 }
 
 transform_config = {
-    'default': transforms.Compose([
-        transforms.ToTensor(),
-    ]),
-    'train': transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]),
-    'valid': transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]),
-    'test': transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]),
-    'test2': A.Compose(
+    'default': A.Compose(
         [
-            A.RandomCrop(width=224, height=224),
-            A.HorizontalFlip(p=0.5),
-            A.RandomBrightnessContrast(p=0.2),
+            A.Resize(height=224, width=224),
+            A.Normalize(),
             ToTensorV2(),
         ],
         bbox_params=A.BboxParams(
             format='pascal_voc',
-            min_visibility=0.5,
+            label_fields=['cls_label'],
+        )
+    ),
+    'train': A.Compose(
+        [
+            A.RandomCrop(height=224, width=224),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+            A.Normalize(),
+            ToTensorV2(),
+        ],
+        bbox_params=A.BboxParams(
+            format='pascal_voc',
+            min_visibility=0.2,
             label_fields=['cls_label'],
         )
     ),
@@ -103,17 +96,18 @@ class RoadSignDataset(Dataset):
         bbox = [df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']]
 
         # Data augmentation
-        if self.mode == 'test2':
-            transformed = transform_config[self.mode](
-                image=img,
-                bboxes=[bbox],
-                cls_label=[cls_idx]
-            )
-            img = transformed['image']
-            bbox = transformed['bboxes'][0]
-            cls_idx = transformed['cls_label'][0]
+        if self.mode == 'train':
+            mode = self.mode
         else:
-            img = transform_config[self.mode](img)
+            mode = 'default'
+        transformed = transform_config[mode](
+            image=img,
+            bboxes=[bbox],
+            cls_label=[cls_idx]
+        )
+        img = transformed['image']
+        bbox = transformed['bboxes'][0]
+        cls_idx = transformed['cls_label'][0]
 
         bbox = np.array(bbox).astype(np.int32)
 
@@ -132,11 +126,12 @@ if __name__ == '__main__':
     anno_path = os.path.join(dataset_root, 'annotations')
 
     df_dataset = generate_df_dataset(anno_path)
-    roadSignDS = RoadSignDataset(df_dataset, img_path, mode='test2')
+    roadSignDS = RoadSignDataset(df_dataset, img_path, mode='test')
     roadSignDL = RoadSignDataLoader(roadSignDS, batch_size=1)
 
     for _, batch_data in enumerate(roadSignDL):
         batch_img, batch_cls, batch_bbox = batch_data
+        print(batch_img)
         print(batch_img.shape, batch_cls, batch_bbox)
 
         img = batch_img[0].permute(1, 2, 0).numpy()
