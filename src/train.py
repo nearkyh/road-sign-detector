@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 import torch
 import torch.nn.functional as F
 
+from settings import set_seed
 from config import RANDOM_SEED
 from config import BATCH_SIZE
 from data import generate_df_dataset
@@ -86,6 +87,8 @@ def valid_on_epoch(model, data_loader, C=1000):
 
 
 if __name__ == '__main__':
+    set_seed(RANDOM_SEED)
+
     dataset_root = os.path.join(os.path.expanduser('~'), 'road-sign-dataset')
     img_path = os.path.join(dataset_root, 'images')
     anno_path = os.path.join(dataset_root, 'annotations')
