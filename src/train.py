@@ -105,7 +105,7 @@ if __name__ == '__main__':
     trainDL = RoadSignDataLoader(trainDS, batch_size=BATCH_SIZE, shuffle=True)
     validDL = RoadSignDataLoader(validDS, batch_size=BATCH_SIZE)
 
-    weights_file = os.path.join(os.path.dirname(os.getcwd()), 'weights', 'best.pt')
+    weights_file = os.path.join(os.path.expanduser('~'), 'road-sign-detector', 'weights', 'best.pt')
     if not os.path.isdir(os.path.dirname(weights_file)):
         os.makedirs(os.path.dirname(weights_file))
 
