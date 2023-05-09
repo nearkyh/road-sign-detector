@@ -11,6 +11,8 @@ from data import generate_df_dataset
 from data import RoadSignDataset
 from data import RoadSignDataLoader
 from model import RoadSignModel
+from callbacks import ModelCheckpoint
+from callbacks import EarlyStopping
 
 
 def train_on_epoch(model, data_loader, optimizer, C=1000):
@@ -103,11 +105,17 @@ if __name__ == '__main__':
     trainDL = RoadSignDataLoader(trainDS, batch_size=BATCH_SIZE, shuffle=True)
     validDL = RoadSignDataLoader(validDS, batch_size=BATCH_SIZE)
 
+    weights_file = os.path.join(os.path.dirname(os.getcwd()), 'weights', 'best.pt')
+    if not os.path.isdir(os.path.dirname(weights_file)):
+        os.makedirs(os.path.dirname(weights_file))
+
     model = RoadSignModel()
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=0.01)
+    modelCheckpoint = ModelCheckpoint(weights_file, monitor='val_loss', verbose=True)
+    earlyStopping = EarlyStopping(patience=7, verbose=True)
 
-    total_epochs = 1
+    total_epochs = 50
     for epoch in range(total_epochs):
         epoch = epoch + 1
 
@@ -115,7 +123,6 @@ if __name__ == '__main__':
         train_loss, train_acc = train_on_epoch(model, trainDL, optimizer)
         valid_loss, valid_acc = valid_on_epoch(model, validDL)
         elapsed_time = time.time() - start_time
-
         print('epoch - [{}/{}]  train_loss - {:.4f}  valid_loss - {:.4f}  train_acc - {:.4f}  valid_acc - {:.4f}  time - {:.4f}s'.format(
             epoch,
             total_epochs,
@@ -125,3 +132,6 @@ if __name__ == '__main__':
             valid_acc,
             elapsed_time
         ))
+
+        earlyStopping(valid_loss)
+        modelCheckpoint(valid_loss, model)
