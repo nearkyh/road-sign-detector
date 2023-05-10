@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from settings import set_seed
+from settings import set_device
 from config import RANDOM_SEED
 from config import BATCH_SIZE
 from data import generate_df_dataset
@@ -22,7 +23,9 @@ def train_on_epoch(model, data_loader, optimizer, C=1000):
     total_acc = 0
     for _, batch_data in enumerate(data_loader):
         batch_img, batch_cls, batch_bbox = batch_data
-        batch_size = batch_cls.shape[0]
+        batch_img = batch_img.to(device)
+        batch_cls = batch_cls.to(device)
+        batch_bbox = batch_bbox.to(device)
 
         # Reset optimizer
         optimizer.zero_grad()
@@ -45,7 +48,7 @@ def train_on_epoch(model, data_loader, optimizer, C=1000):
         _, pred = torch.max(out_cls, 1)
         acc = pred.eq(batch_cls).sum()
 
-        total_num += batch_size
+        total_num += batch_cls.shape[0]
         total_loss += loss.item()
         total_acc += acc.item()
 
@@ -62,7 +65,9 @@ def valid_on_epoch(model, data_loader, C=1000):
     total_acc = 0
     for _, batch_data in enumerate(data_loader):
         batch_img, batch_cls, batch_bbox = batch_data
-        batch_size = batch_cls.shape[0]
+        batch_img = batch_img.to(device)
+        batch_cls = batch_cls.to(device)
+        batch_bbox = batch_bbox.to(device)
 
         # Forward
         out_cls, out_bbox = model(batch_img)
@@ -78,7 +83,7 @@ def valid_on_epoch(model, data_loader, C=1000):
         _, pred = torch.max(out_cls, 1)
         acc = pred.eq(batch_cls).sum()
 
-        total_num += batch_size
+        total_num += batch_cls.shape[0]
         total_loss += loss.item()
         total_acc += acc.item()
 
@@ -90,6 +95,7 @@ def valid_on_epoch(model, data_loader, C=1000):
 
 if __name__ == '__main__':
     set_seed(RANDOM_SEED)
+    device = set_device()
 
     dataset_root = os.path.join(os.path.expanduser('~'), 'road-sign-dataset')
     img_path = os.path.join(dataset_root, 'images')
@@ -110,6 +116,7 @@ if __name__ == '__main__':
         os.makedirs(os.path.dirname(weights_file))
 
     model = RoadSignModel()
+    model.to(device)
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=0.01)
     modelCheckpoint = ModelCheckpoint(weights_file, monitor='val_loss', verbose=True)
