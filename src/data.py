@@ -50,7 +50,7 @@ transform_config = {
 }
 
 
-def generate_df_dataset(anno_path):
+def create_df_dataset(anno_path):
     anno_files = glob(os.path.join(anno_path, '*.xml'))
     anno_list = []
     for anno_file in anno_files:
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     img_path = os.path.join(dataset_root, 'images')
     anno_path = os.path.join(dataset_root, 'annotations')
 
-    df_dataset = generate_df_dataset(anno_path)
+    df_dataset = create_df_dataset(anno_path)
     roadSignDS = RoadSignDataset(df_dataset, img_path, mode='test')
     roadSignDL = RoadSignDataLoader(roadSignDS, batch_size=1)
 

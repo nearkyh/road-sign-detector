@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 from sklearn.model_selection import train_test_split
@@ -5,10 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from settings import set_seed
-from settings import set_device
-from config import RANDOM_SEED
-from config import BATCH_SIZE
-from data import generate_df_dataset
+from data import create_df_dataset
 from data import RoadSignDataset
 from data import RoadSignDataLoader
 from model import RoadSignModel
@@ -93,28 +91,50 @@ def valid_on_epoch(model, data_loader, C=1000):
     return valid_loss, valid_acc
 
 
+def set_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_root', type=str, default=os.path.join(os.path.expanduser('~'), 'road-sign-dataset'))
+    parser.add_argument('--weights_file', type=str, default=os.path.join(os.path.expanduser('~'), 'road-sign-detector', 'weights', 'best.pt'))
+    parser.add_argument('--devices', type=str, default='0')  # 'cpu', or '0' or '0,1,2,4'
+    parser.add_argument('--seed', type=int, default=2023)
+    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--optim', type=str, default='Adam')
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--local_rank', type=int, default=0)
+    args = parser.parse_args()
+
+    return args
+
+
 if __name__ == '__main__':
-    set_seed(RANDOM_SEED)
-    device = set_device()
+    args = set_args()
+    data_root = args.data_root
+    weights_file = args.weights_file
+    devices = args.devices
+    seed = args.seed
+    epochs = args.epochs
+    batch_size = args.batch_size
+    optim = args.optim
+    lr = args.lr
+    local_rank = args.local_rank
 
-    dataset_root = os.path.join(os.path.expanduser('~'), 'road-sign-dataset')
-    img_path = os.path.join(dataset_root, 'images')
-    anno_path = os.path.join(dataset_root, 'annotations')
+    set_seed(seed)
+    device = torch.device('cpu') if devices == 'cpu' else torch.device(local_rank)
 
-    df_dataset = generate_df_dataset(anno_path)
+    img_path = os.path.join(data_root, 'images')
+    anno_path = os.path.join(data_root, 'annotations')
+    df_dataset = create_df_dataset(anno_path)
     # train:valid:test=8:1:1
-    df_train, df_valid = train_test_split(df_dataset, test_size=0.2, random_state=RANDOM_SEED)
-    df_valid, df_test = train_test_split(df_valid, test_size=0.5, random_state=RANDOM_SEED)
-
+    df_train, df_valid = train_test_split(df_dataset, test_size=0.2, random_state=seed)
+    df_valid, df_test = train_test_split(df_valid, test_size=0.5, random_state=seed)
     trainDS = RoadSignDataset(df_train, img_path, mode='train')
     validDS = RoadSignDataset(df_valid, img_path, mode='valid')
-    trainDL = RoadSignDataLoader(trainDS, batch_size=BATCH_SIZE, shuffle=True)
-    validDL = RoadSignDataLoader(validDS, batch_size=BATCH_SIZE)
+    trainDL = RoadSignDataLoader(trainDS, batch_size=batch_size, shuffle=True)
+    validDL = RoadSignDataLoader(validDS, batch_size=batch_size)
 
-    weights_file = os.path.join(os.path.expanduser('~'), 'road-sign-detector', 'weights', 'best.pt')
     if not os.path.isdir(os.path.dirname(weights_file)):
         os.makedirs(os.path.dirname(weights_file))
-
     model = RoadSignModel()
     model.to(device)
     parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -122,7 +142,7 @@ if __name__ == '__main__':
     modelCheckpoint = ModelCheckpoint(weights_file, monitor='val_loss', verbose=True)
     earlyStopping = EarlyStopping(patience=7, verbose=True)
 
-    total_epochs = 50
+    total_epochs = 1
     for epoch in range(total_epochs):
         epoch = epoch + 1
 
