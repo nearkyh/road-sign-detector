@@ -10,6 +10,7 @@ from data import create_df_dataset
 from data import RoadSignDataset
 from data import RoadSignDataLoader
 from model import RoadSignModel
+from optimizers import from_optimizer
 from callbacks import ModelCheckpoint
 from callbacks import EarlyStopping
 
@@ -138,12 +139,11 @@ if __name__ == '__main__':
     model = RoadSignModel()
     model.to(device)
     parameters = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=0.01)
+    optimizer = from_optimizer(optim, params=model.parameters(), lr=lr)
     modelCheckpoint = ModelCheckpoint(weights_file, monitor='val_loss', verbose=True)
     earlyStopping = EarlyStopping(patience=7, verbose=True)
 
-    total_epochs = 1
-    for epoch in range(total_epochs):
+    for epoch in range(epochs):
         epoch = epoch + 1
 
         start_time = time.time()
@@ -152,7 +152,7 @@ if __name__ == '__main__':
         elapsed_time = time.time() - start_time
         print('epoch - [{}/{}]  train_loss - {:.4f}  valid_loss - {:.4f}  train_acc - {:.4f}  valid_acc - {:.4f}  time - {:.4f}s'.format(
             epoch,
-            total_epochs,
+            epochs,
             train_loss,
             valid_loss,
             train_acc,
