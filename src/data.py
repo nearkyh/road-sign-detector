@@ -4,8 +4,10 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
 import cv2
+import torch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
+import torchvision as tv
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
@@ -47,6 +49,11 @@ transform_config = {
             label_fields=['cls_label'],
         )
     ),
+    'demo': tv.transforms.Compose([
+        tv.transforms.Resize((224, 224)),
+        tv.transforms.ToTensor(),
+        tv.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ]),
 }
 
 
@@ -67,6 +74,24 @@ def create_df_dataset(anno_path):
         anno_list.append(anno)
 
     return pd.DataFrame(anno_list)
+
+
+def preprocess(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # Normalize
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    img = (img / 255.0 - mean) / std
+    # Resize
+    img = cv2.resize(img, (224, 224))
+    # To tensor
+    img = torch.tensor(img, dtype=torch.float32)
+    # Add batch dimension
+    img = img.unsqueeze(0)
+    # (B, H, W ,C) --> (B, C, W, H)
+    img = img.permute(0, 3, 2, 1)
+
+    return img
 
 
 class RoadSignDataset(Dataset):
