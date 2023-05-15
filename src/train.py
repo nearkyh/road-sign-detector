@@ -160,5 +160,8 @@ if __name__ == '__main__':
             elapsed_time
         ))
 
-        earlyStopping(valid_loss)
         modelCheckpoint(valid_loss, model)
+        earlyStopping(valid_loss)
+        stop_flag = earlyStopping.early_stop
+        if stop_flag:
+            break
