@@ -1,50 +1,42 @@
 import cv2
 import numpy as np
 
-
-def read_img(img_file):
-    img = cv2.imread(img_file)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-    return img
-
-
-def create_bbox_mask(img, bbox):
-    """이미지의 Bounding Box에 대한 Mask 생성"""
-    img_h, img_w, _ = img.shape
-    mask = np.zeros((img_h, img_w))
-    bbox = np.array(bbox, dtype=np.int32)
-    xmin, ymin, xmax, ymax = bbox
-    mask[ymin: ymax, xmin: xmax] = 1.
-
-    return mask
+class_label = {
+    0: 'speedlimit',
+    1: 'stop',
+    2: 'crosswalk',
+    3: 'trafficlight',
+}
+class_color = {
+    0: (0, 255, 0),
+    1: (0, 255, 0),
+    2: (0, 255, 0),
+    3: (0, 255, 0),
+}
 
 
-def mask_to_bbox(mask):
-    """Mask에 대한 Bounding Box 반환"""
-    y_arr, x_arr = np.nonzero(mask)  # 0이 아닌 index(y, x)들을 반환
-    if len(x_arr) == 0:
-        bbox = np.zeros(4, dtype=np.float32)
-    else:
-        xmin = np.min(x_arr)
-        ymin = np.min(y_arr)
-        xmax = np.max(x_arr)
-        ymax = np.max(y_arr)
-        bbox = np.array([xmin, ymin, xmax, ymax], dtype=np.float32)
+def draw_objects(img, bboxes, cls_ids):
+    for idx in range(len(bboxes)):
+        xmin, ymin, xmax, ymax = bboxes[idx]
+        cls_id = cls_ids[idx]
+        cls_label = class_label[cls_id]
+        bbox_color = class_color[cls_id]
+        bbox_thickness = 2
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_size = 1
+        font_color = bbox_color
+        font_thickness = bbox_thickness
+        (font_w, font_h), _ = cv2.getTextSize(cls_label, font, font_size, font_thickness)
 
-    return bbox
-
-
-def draw_bbox(img, bbox, color=(0, 255, 0), thickness=2):
-    """Bounding Box 그리기"""
-    xmin, ymin, xmax, ymax = bbox
-    cv2.rectangle(img, (xmin, ymin), (xmax, ymax), color, thickness)
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), bbox_color, bbox_thickness)
+        cv2.putText(img, cls_label, (xmin, ymin + font_h), font, font_size, font_color, font_thickness)
 
 
 if __name__ == '__main__':
-    img = np.zeros((300, 300, 3), np.uint8)
-    bbox = [35, 35, 75, 75]
-    draw_bbox(img, bbox)
+    img = np.zeros((1000, 1000, 3), np.uint8)
+    bboxes = [[35, 35, 575, 575]]
+    cls_ids = [1]
+    draw_objects(img, bboxes, cls_ids)
 
     cv2.imshow('img', img)
     cv2.waitKey(0)
