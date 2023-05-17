@@ -11,7 +11,7 @@ import torchvision as tv
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
-class_idx = {
+class_id = {
     'speedlimit': 0,
     'stop': 1,
     'crosswalk': 2,
@@ -114,7 +114,7 @@ class RoadSignDataset(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Object class
-        cls_idx = class_idx[df_obj['class']]
+        cls_id = class_id[df_obj['class']]
 
         # Object bounding box
         bbox = [df_obj['xmin'], df_obj['ymin'], df_obj['xmax'], df_obj['ymax']]
@@ -127,15 +127,15 @@ class RoadSignDataset(Dataset):
         transformed = transform_config[mode](
             image=img,
             bboxes=[bbox],
-            cls_label=[cls_idx]
+            cls_label=[cls_id]
         )
         img = transformed['image']
         bbox = transformed['bboxes'][0]
-        cls_idx = transformed['cls_label'][0]
+        cls_id = transformed['cls_label'][0]
 
         bbox = np.array(bbox).astype(np.int32)
 
-        return img, cls_idx, bbox
+        return img, cls_id, bbox
 
 
 class RoadSignDataLoader(DataLoader):
